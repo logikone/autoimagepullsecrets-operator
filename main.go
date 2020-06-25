@@ -25,6 +25,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	selectorsv1alpha1 "github.com/logikone/autoimagepullsecrets-operator/api/v1alpha1"
+	"github.com/logikone/autoimagepullsecrets-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -35,20 +38,23 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-
-	// +kubebuilder:scaffold:scheme
+	_ = selectorsv1alpha1.AddToScheme(scheme)
 }
 
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var zapOptions zap.Options
+
+	zapOptions.BindFlags(flag.CommandLine)
+
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -62,7 +68,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// +kubebuilder:scaffold:builder
+	if err := (&controllers.NamespaceReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controller").WithName("Namespace"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "error starting namespace reconciler")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

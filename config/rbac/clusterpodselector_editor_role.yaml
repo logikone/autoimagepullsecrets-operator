@@ -1,0 +1,24 @@
+# permissions for end users to edit clusterpodselectors.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: clusterpodselector-editor-role
+rules:
+- apiGroups:
+  - selectors.autoimagepullsecrets.io
+  resources:
+  - clusterpodselectors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - selectors.autoimagepullsecrets.io
+  resources:
+  - clusterpodselectors/status
+  verbs:
+  - get

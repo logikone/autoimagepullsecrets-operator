@@ -1,0 +1,7 @@
+apiVersion: selectors.autoimagepullsecrets.io/v1alpha1
+kind: PodSelector
+metadata:
+  name: podselector-sample
+spec:
+  # Add fields here
+  foo: bar

@@ -1,8 +1,8 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= logikone/autoimagepullsecrets-operator:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd:crdVersions=v1"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -78,3 +78,11 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+update-chart: rbac schemapatch
+
+rbac:
+	$(CONTROLLER_GEN) rbac:roleName=autoimagepullsecrets-operator paths="./..." output:rbac:artifacts:config=./deploy/chart/autoimagepullsecrets-operator/templates
+
+schemapatch: controller-gen
+	$(CONTROLLER_GEN) schemapatch:manifests=./deploy/crds output:schemapatch:artifacts:config=./deploy/crds paths=./api/...
