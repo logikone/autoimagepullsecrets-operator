@@ -1,0 +1,3 @@
+domain: autoimagepullsecrets.io
+repo: github.com/logikone/autoimagepullsecrets-operator
+version: "2"
