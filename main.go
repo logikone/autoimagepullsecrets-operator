@@ -28,6 +28,7 @@ import (
 
 	selectorsv1alpha1 "github.com/logikone/autoimagepullsecrets-operator/api/v1alpha1"
 	"github.com/logikone/autoimagepullsecrets-operator/controllers"
+	"github.com/logikone/autoimagepullsecrets-operator/webhooks"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -42,12 +43,14 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
+	var certDir string
 	var enableLeaderElection bool
+	var metricsAddr string
 	var zapOptions zap.Options
 
 	zapOptions.BindFlags(flag.CommandLine)
 
+	flag.StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "The directory webhook certificates will be loaded from")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -57,17 +60,35 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
+		CertDir:            certDir,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "8833e298.autoimagepullsecrets.io",
+		MetricsBindAddress: metricsAddr,
+		Port:               9443,
+		Scheme:             scheme,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
+	checkError(setupControllers(mgr))
+	checkError(setupWebhooks(mgr))
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func checkError(err error) {
+	if err != nil {
+		setupLog.Error(err, "error during setup")
+	}
+}
+
+func setupControllers(mgr ctrl.Manager) error {
 	if err := (&controllers.NamespaceReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controller").WithName("Namespace"),
@@ -76,9 +97,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+	if err := (&controllers.SecretReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controller").WithName("Secret"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "error starting secret reconciler")
 		os.Exit(1)
 	}
+
+	return nil
+}
+
+func setupWebhooks(mgr ctrl.Manager) error {
+	if err := (&webhooks.ImagePullSecretInjector{
+		Client:        mgr.GetClient(),
+		EventRecorder: mgr.GetEventRecorderFor("image-pull-secrets-injector"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "error starting image pull secret injector")
+		os.Exit(1)
+	}
+
+	return nil
 }
