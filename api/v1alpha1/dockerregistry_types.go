@@ -20,38 +20,41 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PodSelectorSpec defines the desired state of PodSelector
-type PodSelectorSpec struct {
+// DockerRegistrySpec defines the desired state of DockerRegistry
+type DockerRegistrySpec struct {
+	AuthConfig AuthConfig `json:"authConfig"`
+
 	// +optional
-	LabelSelector metav1.LabelSelector `json:"labelSelector,omitempty"`
+	Registry *Matcher `json:"registry,omitempty"`
 }
 
-// PodSelectorStatus defines the observed state of PodSelector
-type PodSelectorStatus struct {
+// DockerRegistryStatus defines the observed state of DockerRegistry
+type DockerRegistryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
 
-// PodSelector is the Schema for the podselectors API
-type PodSelector struct {
+// DockerRegistry is the Schema for the dockerregistries API
+type DockerRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PodSelectorSpec   `json:"spec,omitempty"`
-	Status PodSelectorStatus `json:"status,omitempty"`
+	Spec   DockerRegistrySpec   `json:"spec,omitempty"`
+	Status DockerRegistryStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// PodSelectorList contains a list of PodSelector
-type PodSelectorList struct {
+// DockerRegistryList contains a list of DockerRegistry
+type DockerRegistryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PodSelector `json:"items"`
+	Items           []DockerRegistry `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&PodSelector{}, &PodSelectorList{})
+	SchemeBuilder.Register(&DockerRegistry{}, &DockerRegistryList{})
 }
