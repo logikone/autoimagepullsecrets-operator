@@ -1,0 +1,29 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ include "autoimagepullsecrets-operator.fullname" . }}
+  labels:
+  {{- include "autoimagepullsecrets-operator.labels" . | nindent 4 }}
+webhooks:
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      caBundle: Cg==
+      service:
+        name: {{ include "autoimagepullsecrets-operator.fullname" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /mutate-v1-pod
+        port: 9443
+    name: mpod.autoimagepullsecrets.io
+    sideEffects: None
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        resources:
+          - pods
+        operations:
+          - CREATE
+          - UPDATE
+        scope: *

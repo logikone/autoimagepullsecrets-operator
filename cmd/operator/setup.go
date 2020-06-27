@@ -9,7 +9,7 @@ import (
 	"github.com/logikone/autoimagepullsecrets-operator/webhooks"
 )
 
-func setupControllers(mgr ctrl.Manager) error {
+func setupControllers(mgr ctrl.Manager) {
 	if err := (&controllers.NamespaceReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controller").WithName("Namespace"),
@@ -25,11 +25,9 @@ func setupControllers(mgr ctrl.Manager) error {
 		setupLog.Error(err, "error starting secret reconciler")
 		os.Exit(1)
 	}
-
-	return nil
 }
 
-func setupWebhooks(mgr ctrl.Manager) error {
+func setupWebhooks(mgr ctrl.Manager) {
 	if err := (&webhooks.ImagePullSecretInjector{
 		Client:        mgr.GetClient(),
 		EventRecorder: mgr.GetEventRecorderFor("image-pull-secrets-injector"),
@@ -37,6 +35,4 @@ func setupWebhooks(mgr ctrl.Manager) error {
 		setupLog.Error(err, "error starting image pull secret injector")
 		os.Exit(1)
 	}
-
-	return nil
 }

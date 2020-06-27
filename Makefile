@@ -82,7 +82,7 @@ endif
 update-chart: rbac schemapatch
 
 rbac:
-	$(CONTROLLER_GEN) rbac:roleName=autoimagepullsecrets-operator paths="./..." output:rbac:artifacts:config=./deploy/chart/autoimagepullsecrets-operator/templates
+	$(CONTROLLER_GEN) rbac:roleName=aips-operator paths="./..." output:rbac:artifacts:config=./deploy/chart/autoimagepullsecrets-operator/templates
 
 schemapatch: controller-gen
 	$(CONTROLLER_GEN) schemapatch:manifests=./deploy/crds output:schemapatch:artifacts:config=./deploy/crds paths=./api/...

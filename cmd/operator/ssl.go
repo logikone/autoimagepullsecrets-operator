@@ -8,23 +8,71 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"os"
+	"path"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
-func getCerts(c client.Client, secret *corev1.Secret) error {
-	return c.Get(context.Background(), types.NamespacedName{
-		Name:      secret.Name,
-		Namespace: secret.Namespace,
-	}, secret)
+func loadCertificates(clientSet *kubernetes.Clientset, name, namespace, certDir string) corev1.Secret {
+	var err error
+	var secret corev1.Secret
+	secret.Name = name
+	secret.Namespace = namespace
+
+	err = getCertSecret(clientSet, &secret)
+	if apierrors.IsNotFound(err) {
+		setupLog.Info("cert secret not found. creating a new one",
+			"name", name, "namespace", namespace)
+		err = genCertSecret(&secret)
+
+		if err != nil {
+			setupLog.Error(err, "error loading certificates")
+			os.Exit(1)
+		}
+
+		saveCertSecret(clientSet, &secret)
+
+	} else if err != nil {
+		setupLog.Error(err, "error getting cert secret")
+	}
+
+	writeCertFiles(secret, certDir)
+
+	setupLog.Info("loaded certificate secret",
+		"name", name, "namespace", namespace)
+
+	return secret
 }
 
-func genCertSecret() (corev1.Secret, error) {
-	var secret corev1.Secret
+func getCertSecret(clientSet *kubernetes.Clientset, secret *corev1.Secret) error {
+	if gotSecret, err := clientSet.CoreV1().
+		Secrets(secret.Namespace).
+		Get(context.Background(), secret.Name, metav1.GetOptions{}); err != nil {
+		return err
+	} else {
+		gotSecret.DeepCopyInto(secret)
+	}
+
+	return nil
+}
+
+func saveCertSecret(clientSet *kubernetes.Clientset, secret *corev1.Secret) {
+	if _, err := clientSet.CoreV1().
+		Secrets(secret.Namespace).
+		Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
+		setupLog.Error(err, "error creating certificate secret")
+		os.Exit(1)
+	}
+}
+
+func genCertSecret(secret *corev1.Secret) error {
 	secret.Type = corev1.SecretTypeTLS
 
 	ca := &x509.Certificate{
@@ -38,12 +86,12 @@ func genCertSecret() (corev1.Secret, error) {
 
 	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return secret, fmt.Errorf("error generating rsa key for ca: %w", err)
+		return fmt.Errorf("error generating rsa key for ca: %w", err)
 	}
 
 	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return secret, fmt.Errorf("error creating ca certificate: %w", err)
+		return fmt.Errorf("error creating ca certificate: %w", err)
 	}
 
 	caPEM := new(bytes.Buffer)
@@ -51,7 +99,7 @@ func genCertSecret() (corev1.Secret, error) {
 		Type:  "CERTIFICATE",
 		Bytes: caBytes,
 	}); err != nil {
-		return secret, fmt.Errorf("error pem encoding ca certificate: %w", err)
+		return fmt.Errorf("error pem encoding ca certificate: %w", err)
 	}
 
 	caPrivKeyPEM := new(bytes.Buffer)
@@ -59,7 +107,7 @@ func genCertSecret() (corev1.Secret, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
 	}); err != nil {
-		return secret, fmt.Errorf("error pem encoding ca private key: %w", err)
+		return fmt.Errorf("error pem encoding ca private key: %w", err)
 	}
 
 	cert := &x509.Certificate{
@@ -71,12 +119,12 @@ func genCertSecret() (corev1.Secret, error) {
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return secret, fmt.Errorf("error generating rsa key for certificate: %w", err)
+		return fmt.Errorf("error generating rsa key for certificate: %w", err)
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, &certPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return secret, fmt.Errorf("error creating certificate: %w", err)
+		return fmt.Errorf("error creating certificate: %w", err)
 	}
 
 	certPEM := new(bytes.Buffer)
@@ -84,7 +132,7 @@ func genCertSecret() (corev1.Secret, error) {
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	}); err != nil {
-		return secret, fmt.Errorf("error pem encoding certificate: %w", err)
+		return fmt.Errorf("error pem encoding certificate: %w", err)
 	}
 
 	certPrivKeyPEM := new(bytes.Buffer)
@@ -92,7 +140,7 @@ func genCertSecret() (corev1.Secret, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(certPrivKey),
 	}); err != nil {
-		return secret, fmt.Errorf("error pem encoding private key: %w", err)
+		return fmt.Errorf("error pem encoding private key: %w", err)
 	}
 
 	secret.Data = map[string][]byte{
@@ -102,5 +150,23 @@ func genCertSecret() (corev1.Secret, error) {
 		corev1.TLSPrivateKeyKey: certPrivKeyPEM.Bytes(),
 	}
 
-	return secret, nil
+	return nil
+}
+
+func writeCertFiles(secret corev1.Secret, certDir string) {
+	tlsCrtFile := path.Join(certDir, corev1.TLSCertKey)
+	tlsKeyFile := path.Join(certDir, corev1.TLSPrivateKeyKey)
+
+	tlsCrtData := secret.Data[corev1.TLSCertKey]
+	tlsKeyData := secret.Data[corev1.TLSPrivateKeyKey]
+
+	if err := ioutil.WriteFile(tlsCrtFile, tlsCrtData, 0640); err != nil {
+		setupLog.Error(err, "error writing tls.crt")
+		os.Exit(1)
+	}
+
+	if err := ioutil.WriteFile(tlsKeyFile, tlsKeyData, 0640); err != nil {
+		setupLog.Error(err, "error writing tls.key")
+		os.Exit(1)
+	}
 }
