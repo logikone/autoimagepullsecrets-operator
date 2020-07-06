@@ -21,29 +21,21 @@ import (
 )
 
 // DockerRegistrySpec defines the desired state of DockerRegistry
-type DockerRegistrySpec struct {
-	AuthConfig AuthConfig `json:"authConfig"`
-
-	// Specifies whether or not this registry will be used as the
-	// default if no others match
-	// +optional
-	Default bool `json:"default,omitempty"`
-
-	// +optional
-	Registry *Matcher `json:"registry,omitempty"`
+type ClusterDockerRegistrySpec struct {
+	DockerRegistrySpec `json:",inline"`
 }
 
 // DockerRegistryStatus defines the observed state of DockerRegistry
-type DockerRegistryStatus struct {
+type ClusterDockerRegistryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:scope=Cluster
 
 // DockerRegistry is the Schema for the dockerregistries API
-type DockerRegistry struct {
+type ClusterDockerRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -54,7 +46,7 @@ type DockerRegistry struct {
 // +kubebuilder:object:root=true
 
 // DockerRegistryList contains a list of DockerRegistry
-type DockerRegistryList struct {
+type ClusterDockerRegistryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []DockerRegistry `json:"items"`

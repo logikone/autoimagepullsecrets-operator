@@ -42,3 +42,19 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - autoimagepullsecrets.io
+  resources:
+  - clusterdockerregistries
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - autoimagepullsecrets.io
+  resources:
+  - dockerregistries
+  verbs:
+  - get
+  - list
+  - watch

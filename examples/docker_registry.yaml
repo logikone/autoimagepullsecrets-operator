@@ -1,0 +1,11 @@
+apiVersion: autoimagepullsecrets.io/v1alpha1
+kind: DockerRegistry
+metadata:
+  name: dockerhub
+spec:
+  authConfig:
+    serveraddress: https://index.docker.io/v1/
+    username: testuser
+    password: testpass
+  registry:
+    regExp: "*.+"

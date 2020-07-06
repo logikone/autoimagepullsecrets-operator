@@ -18,6 +18,16 @@ func IsManagedSecret(obj metav1.Object) bool {
 	return false
 }
 
+func IsSourceSecret(obj metav1.Object) bool {
+	if isSource, ok := obj.GetAnnotations()[SourceSecretAnnotation]; ok {
+		if isSource == True {
+			return true
+		}
+	}
+
+	return false
+}
+
 func GetNamespacedName(in metav1.Object) (types.NamespacedName, error) {
 	var namespacedName types.NamespacedName
 
