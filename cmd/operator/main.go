@@ -20,13 +20,10 @@ import (
 	"flag"
 	"os"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	aipsv1alpha1 "github.com/logikone/autoimagepullsecrets-operator/api/v1alpha1"
@@ -43,18 +40,12 @@ func init() {
 }
 
 func main() {
-	var certDir string
-	var certSecretName string
-	var certSecretNamespace string
 	var enableLeaderElection bool
 	var metricsAddr string
 	var zapOptions zap.Options
 
 	zapOptions.BindFlags(flag.CommandLine)
 
-	flag.StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "The directory webhook certificates will be loaded from")
-	flag.StringVar(&certSecretName, "cert-secret-name", "aips-operator-certs", "the name of the secret which contains certs for the webhook server")
-	flag.StringVar(&certSecretNamespace, "cert-secret-namespace", metav1.NamespaceNone, "the namespace the cert secret exists/will be created in")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -67,28 +58,22 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zapOptions)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		CertDir:            certDir,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "8833e298.autoimagepullsecrets.io",
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		Scheme:             scheme,
+		CertDir:                "/tmp/k8s-webhook-server/serving-certs",
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "8833e298.autoimagepullsecrets.io",
+		MetricsBindAddress:     metricsAddr,
+		HealthProbeBindAddress: ":8081",
+		Port:                   9443,
+		Scheme:                 scheme,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	clientSet, err := kubernetes.NewForConfig(config.GetConfigOrDie())
-	if err != nil {
-		setupLog.Error(err, "error creating kubernetes client")
-		os.Exit(1)
-	}
-
+	setupHealthChecks(mgr)
 	setupControllers(mgr)
 	setupWebhooks(mgr)
-	certSecret := loadCertificates(clientSet, certSecretName, certSecretNamespace, certDir)
-	checkMutatingWebhookConfiguration(clientSet, certSecret)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

@@ -2,6 +2,8 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: {{ include "autoimagepullsecrets-operator.fullname" . }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ .Values.certSecret }}
   labels:
   {{- include "autoimagepullsecrets-operator.labels" . | nindent 4 }}
 webhooks:
@@ -10,12 +12,13 @@ webhooks:
     clientConfig:
       caBundle: Cg==
       service:
-        name: {{ include "autoimagepullsecrets-operator.fullname" . }}
+        name: "{{ .Release.Name }}-{{ include "autoimagepullsecrets-operator.fullname" . }}"
         namespace: {{ .Release.Namespace }}
         path: /mutate-v1-pod
         port: 9443
     name: mpod.autoimagepullsecrets.io
     sideEffects: None
+    failurePolicy: Ignore
     rules:
       - apiGroups:
           - ""
@@ -26,4 +29,4 @@ webhooks:
         operations:
           - CREATE
           - UPDATE
-        scope: *
+        scope: "*"

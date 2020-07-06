@@ -16,7 +16,7 @@ COPY controllers/ controllers/
 COPY webhooks/ webhooks/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o operator ./cmd/operator
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o operator -ldflags="-s -w" ./cmd/operator
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

@@ -39,8 +39,8 @@ deploy: manifests
 	kustomize build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+manifests: controller-gen update-chart
+	#$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
 fmt:
@@ -79,10 +79,10 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
-update-chart: rbac schemapatch
+update-chart: controller-gen rbac schemapatch
 
-rbac:
-	$(CONTROLLER_GEN) rbac:roleName=aips-operator paths="./..." output:rbac:artifacts:config=./deploy/chart/autoimagepullsecrets-operator/templates
+rbac: controller-gen
+	$(CONTROLLER_GEN) 'rbac:roleName=`{{ .Release.Name }}-aips-operator`' paths="./..." output:rbac:artifacts:config=./deploy/chart/autoimagepullsecrets-operator/templates
 
 schemapatch: controller-gen
 	$(CONTROLLER_GEN) schemapatch:manifests=./deploy/crds output:schemapatch:artifacts:config=./deploy/crds paths=./api/...

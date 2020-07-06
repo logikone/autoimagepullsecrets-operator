@@ -3,44 +3,44 @@ kind: Deployment
 metadata:
   name: {{ include "autoimagepullsecrets-operator.fullname" . }}
   labels:
-    {{- include "autoimagepullsecrets-operator.labels" . | nindent 4 }}
+  {{- include "autoimagepullsecrets-operator.labels" . | nindent 4 }}
 spec:
-{{- if not .Values.autoscaling.enabled }}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-{{- end }}
+  {{- end }}
   selector:
     matchLabels:
-      {{- include "autoimagepullsecrets-operator.selectorLabels" . | nindent 6 }}
+  {{- include "autoimagepullsecrets-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-    {{- with .Values.podAnnotations }}
+      {{- with .Values.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        {{- include "autoimagepullsecrets-operator.selectorLabels" . | nindent 8 }}
+    {{- include "autoimagepullsecrets-operator.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+      {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "autoimagepullsecrets-operator.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: operator
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - name: NAMESPACE
+            - name: MY_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
           args:
             - -enable-leader-election
-            - -cert-secret-namespace=$NAMESPACE
+            - -zap-log-level=debug
           ports:
             - name: metrics
               containerPort: 8080
@@ -57,16 +57,25 @@ spec:
               path: /readyz
               port: metrics
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+          {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
       {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
+      {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: {{ .Values.certSecret }}
