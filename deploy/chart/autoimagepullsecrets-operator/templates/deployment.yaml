@@ -45,17 +45,20 @@ spec:
             - name: metrics
               containerPort: 8080
               protocol: TCP
+            - name: status
+              containerPort: 8081
+              protocol: TCP
             - name: webhook
               containerPort: 9443
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
-              port: metrics
+              port: status
           readinessProbe:
             httpGet:
               path: /readyz
-              port: metrics
+              port: status
           resources:
           {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
