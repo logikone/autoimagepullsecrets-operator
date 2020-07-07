@@ -1,34 +1,35 @@
 package v1alpha1
 
-type DockerConfigFile struct {
+type dockerConfigFile struct {
 	AuthConfigs map[string]AuthConfig `json:"auths"`
+}
+
+type dockerAuthConfig struct {
+	Username      string `json:"username,omitempty"`
+	Password      string `json:"password,omitempty"`
+	Auth          string `json:"auth,omitempty"`
+	Email         string `json:"email,omitempty"`
+	ServerAddress string `json:"serveraddress,omitempty"`
+	IdentityToken string `json:"identitytoken,omitempty"`
+	RegistryToken string `json:"registrytoken,omitempty"`
 }
 
 // AuthConfig contains authorization information for connecting to a Registry
 type AuthConfig struct {
 	// +optional
-	Username string `json:"username,omitempty"`
+	Username []byte `json:"username,omitempty"`
 
 	// +optional
-	Password string `json:"password,omitempty"`
-
-	// +optional
-	Auth string `json:"auth,omitempty"`
-
-	// Email is an optional value associated with the username.
-	// This field is deprecated and will be removed in a later
-	// version of docker.
-	// +optional
-	Email string `json:"email,omitempty"`
+	Password []byte `json:"password,omitempty"`
 
 	ServerAddress string `json:"serveraddress,omitempty"`
 
 	// IdentityToken is used to authenticate the user and get
 	// an access token for the registry.
 	// +optional
-	IdentityToken string `json:"identitytoken,omitempty"`
+	IdentityToken []byte `json:"identitytoken,omitempty"`
 
 	// RegistryToken is a bearer token to be sent to a registry
 	// +optional
-	RegistryToken string `json:"registrytoken,omitempty"`
+	RegistryToken []byte `json:"registrytoken,omitempty"`
 }

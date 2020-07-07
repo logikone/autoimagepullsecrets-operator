@@ -5,8 +5,8 @@ metadata:
 spec:
   authConfig:
     serveraddress: https://index.docker.io/v1/
-    username: testuser
-    password: testpass
+    username: dXNlcm5hbWU=
+    password: cGFzc3dvcmQ=
   default: true
   registry:
     regExp: "*.+"
