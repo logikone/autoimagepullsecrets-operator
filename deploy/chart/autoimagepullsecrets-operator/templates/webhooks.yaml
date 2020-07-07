@@ -12,7 +12,7 @@ webhooks:
     clientConfig:
       caBundle: Cg==
       service:
-        name: "{{ .Release.Name }}-{{ include "autoimagepullsecrets-operator.fullname" . }}"
+        name: {{ include "autoimagepullsecrets-operator.fullname" . }}
         namespace: {{ .Release.Namespace }}
         path: /mutate-v1-pod
         port: 9443
@@ -26,6 +26,62 @@ webhooks:
           - v1
         resources:
           - pods
+        operations:
+          - CREATE
+          - UPDATE
+        scope: "*"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "autoimagepullsecrets-operator.fullname" . }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ .Values.certSecret }}
+  labels:
+  {{- include "autoimagepullsecrets-operator.labels" . | nindent 4 }}
+webhooks:
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      caBundle: Cg==
+      service:
+        name: {{ include "autoimagepullsecrets-operator.fullname" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-autoimagepullsecrets-io-v1alpha1-clusterdockerregistry
+        port: 9443
+    name: vclusterdockerregistries.autoimagepullsecrets.io
+    sideEffects: None
+    failurePolicy: Fail
+    rules:
+      - apiGroups:
+          - autoimagepullsecrets.io
+        apiVersions:
+          - v1alpha1
+        resources:
+          - clusterdockerregistries
+        operations:
+          - CREATE
+          - UPDATE
+        scope: "*"
+  - admissionReviewVersions:
+      - v1beta1
+    clientConfig:
+      caBundle: Cg==
+      service:
+        name: {{ include "autoimagepullsecrets-operator.fullname" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-autoimagepullsecrets-io-v1alpha1-dockerregistry
+        port: 9443
+    name: vdockerregistries.autoimagepullsecrets.io
+    sideEffects: None
+    failurePolicy: Fail
+    rules:
+      - apiGroups:
+          - autoimagepullsecrets.io
+        apiVersions:
+          - v1alpha1
+        resources:
+          - dockerregistries
         operations:
           - CREATE
           - UPDATE

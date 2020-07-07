@@ -22,15 +22,11 @@ import (
 
 // DockerRegistrySpec defines the desired state of DockerRegistry
 type DockerRegistrySpec struct {
+	// Docker authentication configuration
 	AuthConfig AuthConfig `json:"authConfig"`
 
-	// Specifies whether or not this registry will be used as the
-	// default if no others match
-	// +optional
-	Default bool `json:"default,omitempty"`
-
-	// +optional
-	Registry *Matcher `json:"registry,omitempty"`
+	// The docker registry that will be authenticated to
+	Registry string `json:"registry"`
 }
 
 // DockerRegistryStatus defines the observed state of DockerRegistry
@@ -49,6 +45,14 @@ type DockerRegistry struct {
 
 	Spec   DockerRegistrySpec   `json:"spec,omitempty"`
 	Status DockerRegistryStatus `json:"status,omitempty"`
+}
+
+func (in *DockerRegistry) GetAuthConfig() AuthConfig {
+	return in.Spec.AuthConfig
+}
+
+func (in *DockerRegistry) IsNamespaced() bool {
+	return false
 }
 
 // +kubebuilder:object:root=true

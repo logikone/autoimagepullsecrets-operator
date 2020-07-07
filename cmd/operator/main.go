@@ -71,6 +71,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	setupClients(mgr)
 	setupHealthChecks(mgr)
 	setupControllers(mgr)
 	setupWebhooks(mgr)

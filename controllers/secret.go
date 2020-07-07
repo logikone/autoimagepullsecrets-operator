@@ -14,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	aipsv1alpha1 "github.com/logikone/autoimagepullsecrets-operator/api/v1alpha1"
 )
 
 type SecretReconciler struct {
@@ -37,7 +39,73 @@ func (r SecretReconciler) Reconcile(req reconcile.Request) (reconcile.Result, er
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if IsManagedSecret(&secret) {
+		namespacedName, err := ParseNamespacedName(secret.Annotations[SourceAnnotation])
+		if err != nil {
+			return reconcile.Result{}, fmt.Errorf("error parsing namespaced name: %w", err)
+		}
+
+		sourceType, ok := secret.Annotations[SourceTypeAnnotation]
+		if !ok {
+			return reconcile.Result{Requeue: false}, fmt.Errorf("missing source type annotation [%s]", SourceTypeAnnotation)
+		}
+
+		switch sourceType {
+		case aipsv1alpha1.ResourceClusterDockerRegistry:
+			var clusterDockerRegistry aipsv1alpha1.ClusterDockerRegistry
+
+			if err := r.Get(ctx, namespacedName, &clusterDockerRegistry); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			if _, err := ctrl.CreateOrUpdate(ctx, r, &secret, func() error {
+				return r.MutateSecret(&secret, &clusterDockerRegistry)
+			}); err != nil {
+				return reconcile.Result{}, err
+			}
+		case aipsv1alpha1.ResourceDockerRegistry:
+			var dockerRegistry aipsv1alpha1.DockerRegistry
+
+			if err := r.Get(ctx, namespacedName, &dockerRegistry); err != nil {
+				return reconcile.Result{}, err
+			}
+
+			if _, err := ctrl.CreateOrUpdate(ctx, r, &secret, func() error {
+				return r.MutateSecret(&secret, &dockerRegistry)
+			}); err != nil {
+				return reconcile.Result{}, err
+			}
+		default:
+			return reconcile.Result{Requeue: false}, fmt.Errorf("unhandled source type [%s]", sourceType)
+		}
+
+	}
+
 	return reconcile.Result{}, nil
+}
+
+func (r SecretReconciler) MutateSecret(secret *corev1.Secret, registry aipsv1alpha1.Registry) error {
+	if secret.Data == nil {
+		secret.Data = map[string][]byte{}
+	}
+
+	var rendered []byte
+	var err error
+
+	currentConfig, ok := secret.Data[corev1.DockerConfigJsonKey]
+	if ok {
+		rendered, err = registry.Render(currentConfig)
+	} else {
+		rendered, err = registry.Render(nil)
+	}
+
+	if err != nil {
+		return fmt.Errorf("error rendering docker config to json: %w", err)
+	}
+
+	secret.Data[corev1.DockerConfigJsonKey] = rendered
+
+	return nil
 }
 
 func (r SecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -45,17 +113,17 @@ func (r SecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	predicateFuncs := predicate.Funcs{
 		CreateFunc: func(event event.CreateEvent) bool {
-			return IsManagedSecret(event.Meta) || IsSourceSecret(event.Meta)
+			return IsManagedSecret(event.Meta) || IsSource(event.Meta)
 		},
 		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
-			return IsManagedSecret(deleteEvent.Meta) || IsSourceSecret(deleteEvent.Meta)
+			return IsManagedSecret(deleteEvent.Meta) || IsSource(deleteEvent.Meta)
 		},
 		UpdateFunc: func(updateEvent event.UpdateEvent) bool {
 			return (IsManagedSecret(updateEvent.MetaOld) || IsManagedSecret(updateEvent.MetaNew)) ||
-				(IsSourceSecret(updateEvent.MetaOld) || IsSourceSecret(updateEvent.MetaNew))
+				(IsSource(updateEvent.MetaOld) || IsSource(updateEvent.MetaNew))
 		},
 		GenericFunc: func(genericEvent event.GenericEvent) bool {
-			return IsManagedSecret(genericEvent.Meta) || IsSourceSecret(genericEvent.Meta)
+			return IsManagedSecret(genericEvent.Meta) || IsSource(genericEvent.Meta)
 		},
 	}
 
@@ -85,7 +153,7 @@ func (r SecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return nil
 		}
 
-		if IsSourceSecret(metaObject) {
+		if IsSource(metaObject) {
 			namespaceName, err := GetNamespacedName(metaObject)
 			if err != nil {
 				return nil

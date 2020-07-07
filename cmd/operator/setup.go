@@ -6,6 +6,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	aipsv1alpha1 "github.com/logikone/autoimagepullsecrets-operator/api/v1alpha1"
 	"github.com/logikone/autoimagepullsecrets-operator/controllers"
 	"github.com/logikone/autoimagepullsecrets-operator/webhooks"
 )
@@ -29,11 +30,21 @@ func setupControllers(mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&webhooks.ImagePullSecretInjector{
+	if err := (&webhooks.ImagePullSecretPodInjector{
 		Client:        mgr.GetClient(),
 		EventRecorder: mgr.GetEventRecorderFor("image-pull-secrets-injector"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "error starting image pull secret injector")
+		os.Exit(1)
+	}
+
+	if err := (&aipsv1alpha1.ClusterDockerRegistry{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", aipsv1alpha1.ResourceClusterDockerRegistry)
+		os.Exit(1)
+	}
+
+	if err := (&aipsv1alpha1.DockerRegistry{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", aipsv1alpha1.ResourceDockerRegistry)
 		os.Exit(1)
 	}
 }
@@ -48,4 +59,8 @@ func setupHealthChecks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to add ready check")
 		os.Exit(1)
 	}
+}
+
+func setupClients(mgr ctrl.Manager) {
+	aipsv1alpha1.Client = mgr.GetClient()
 }

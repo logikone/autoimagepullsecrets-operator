@@ -18,8 +18,8 @@ func IsManagedSecret(obj metav1.Object) bool {
 	return false
 }
 
-func IsSourceSecret(obj metav1.Object) bool {
-	if isSource, ok := obj.GetAnnotations()[SourceSecretAnnotation]; ok {
+func IsSource(obj metav1.Object) bool {
+	if isSource, ok := obj.GetAnnotations()[SourceAnnotation]; ok {
 		if isSource == True {
 			return true
 		}
@@ -31,10 +31,10 @@ func IsSourceSecret(obj metav1.Object) bool {
 func GetNamespacedName(in metav1.Object) (types.NamespacedName, error) {
 	var namespacedName types.NamespacedName
 
-	val, ok := in.GetAnnotations()[SourceSecretAnnotation]
+	val, ok := in.GetAnnotations()[SourceAnnotation]
 	if !ok {
 		return namespacedName, fmt.Errorf(
-			"annotation [%s] not found: %w", SourceSecretAnnotation, ErrMapKeyNotFound)
+			"annotation [%s] not found: %w", SourceAnnotation, ErrMapKeyNotFound)
 	}
 
 	return ParseNamespacedName(val)

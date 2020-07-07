@@ -43,6 +43,14 @@ type ClusterDockerRegistry struct {
 	Status DockerRegistryStatus `json:"status,omitempty"`
 }
 
+func (in *ClusterDockerRegistry) GetAuthConfig() AuthConfig {
+	return in.Spec.AuthConfig
+}
+
+func (in *ClusterDockerRegistry) IsNamespaced() bool {
+	return true
+}
+
 // +kubebuilder:object:root=true
 
 // DockerRegistryList contains a list of DockerRegistry
@@ -53,5 +61,5 @@ type ClusterDockerRegistryList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerRegistry{}, &DockerRegistryList{})
+	SchemeBuilder.Register(&ClusterDockerRegistry{}, &ClusterDockerRegistryList{})
 }

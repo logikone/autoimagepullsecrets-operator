@@ -4,9 +4,9 @@ metadata:
   name: dockerhub
 spec:
   authConfig:
-    serveraddress: https://index.docker.io/v1/
+    serveraddress: docker.artifactory.saltstack.net
     username: dXNlcm5hbWU=
     password: cGFzc3dvcmQ=
-  default: true
-  registry:
-    regExp: "*.+"
+  match:
+    #    regExp: /*.+/
+    exact: docker.artifactory.saltstack.com

@@ -1,7 +1,7 @@
 package v1alpha1
 
 type dockerConfigFile struct {
-	AuthConfigs map[string]AuthConfig `json:"auths"`
+	AuthConfigs map[string]dockerAuthConfig `json:"auths"`
 }
 
 type dockerAuthConfig struct {
@@ -14,7 +14,7 @@ type dockerAuthConfig struct {
 	RegistryToken string `json:"registrytoken,omitempty"`
 }
 
-// AuthConfig contains authorization information for connecting to a Registry
+// AuthConfig contains authorization information for connecting to a docker registry
 type AuthConfig struct {
 	// +optional
 	Username []byte `json:"username,omitempty"`

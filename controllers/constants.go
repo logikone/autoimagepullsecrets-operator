@@ -6,7 +6,8 @@ import (
 
 const (
 	ManagedSecretAnnotation = "autoimagepullsecrets.io/managed"
-	SourceSecretAnnotation  = "autoimagepullsecrets.io/source"
+	SourceAnnotation        = "autoimagepullsecrets.io/source"
+	SourceTypeAnnotation    = "autoimagepullsecrets.io/source-type"
 
 	True  = "true"
 	False = "false"
@@ -14,5 +15,5 @@ const (
 
 var (
 	ManagedSecretIndex = fmt.Sprintf(".metadata.annotations.%s", ManagedSecretAnnotation)
-	SourceSecretIndex  = fmt.Sprintf(".metadata.annotations.%s", SourceSecretAnnotation)
+	SourceSecretIndex  = fmt.Sprintf(".metadata.annotations.%s", SourceAnnotation)
 )
