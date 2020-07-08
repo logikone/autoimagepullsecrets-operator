@@ -9,7 +9,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - namespaces
+  - pods
   verbs:
   - get
   - list
@@ -19,7 +19,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - namespaces/status
+  - pods/status
   verbs:
   - get
   - patch

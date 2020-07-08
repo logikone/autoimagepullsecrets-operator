@@ -11,8 +11,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	aipsv1alpha1 "github.com/logikone/autoimagepullsecrets-operator/api/v1alpha1"
@@ -111,22 +109,6 @@ func (r SecretReconciler) MutateSecret(secret *corev1.Secret, registry aipsv1alp
 func (r SecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 
-	predicateFuncs := predicate.Funcs{
-		CreateFunc: func(event event.CreateEvent) bool {
-			return IsManagedSecret(event.Meta) || IsSource(event.Meta)
-		},
-		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
-			return IsManagedSecret(deleteEvent.Meta) || IsSource(deleteEvent.Meta)
-		},
-		UpdateFunc: func(updateEvent event.UpdateEvent) bool {
-			return (IsManagedSecret(updateEvent.MetaOld) || IsManagedSecret(updateEvent.MetaNew)) ||
-				(IsSource(updateEvent.MetaOld) || IsSource(updateEvent.MetaNew))
-		},
-		GenericFunc: func(genericEvent event.GenericEvent) bool {
-			return IsManagedSecret(genericEvent.Meta) || IsSource(genericEvent.Meta)
-		},
-	}
-
 	if err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.Secret{}, ManagedSecretIndex, func(object runtime.Object) []string {
 		metaObject, ok := object.(metav1.Object)
 		if !ok {
@@ -168,6 +150,6 @@ func (r SecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Secret{}, builder.WithPredicates(predicateFuncs)).
+		For(&corev1.Secret{}, builder.WithPredicates(secretPredicates)).
 		Complete(r)
 }

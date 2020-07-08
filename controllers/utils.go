@@ -5,7 +5,10 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/logikone/autoimagepullsecrets-operator/webhooks"
 )
 
 func IsManagedSecret(obj metav1.Object) bool {
@@ -62,4 +65,17 @@ func ParseNamespacedName(in string) (types.NamespacedName, error) {
 	namespacedName.Name = separated[1]
 
 	return namespacedName, nil
+}
+
+func PodRequiresSecret(in runtime.Object) bool {
+	obj, ok := in.(metav1.Object)
+	if !ok {
+		return false
+	}
+
+	if val, ok := obj.GetAnnotations()[webhooks.IPSInjectionEnabled]; !ok {
+		return false
+	} else {
+		return val == "true"
+	}
 }

@@ -182,20 +182,3 @@ func (i *ImagePullSecretPodInjector) SetupWithManager(mgr ctrl.Manager) error {
 
 	return nil
 }
-
-func IPSCanInject(pod corev1.Pod) bool {
-	if pod.Annotations == nil {
-		return true
-	}
-
-	injectionEnabled, ok := pod.Annotations[IPSInjectionEnabled]
-	if !ok {
-		return true
-	}
-
-	if injectionEnabled == "false" {
-		return false
-	}
-
-	return true
-}

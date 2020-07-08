@@ -12,11 +12,11 @@ import (
 )
 
 func setupControllers(mgr ctrl.Manager) {
-	if err := (&controllers.NamespaceReconciler{
+	if err := (&controllers.PodReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controller").WithName("Namespace"),
+		Log:    ctrl.Log.WithName("controller").WithName("Pod"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "error starting namespace reconciler")
+		setupLog.Error(err, "error starting pod reconciler")
 		os.Exit(1)
 	}
 
