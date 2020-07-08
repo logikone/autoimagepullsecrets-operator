@@ -1,6 +1,9 @@
 package webhooks
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/docker/distribution/reference"
 )
 
@@ -10,5 +13,11 @@ func DockerRegistryFromImage(image string) (string, error) {
 		return "", err
 	}
 
-	return ref.Name(), nil
+	separated := strings.Split(ref.Name(), "/")
+
+	if len(separated) < 2 {
+		return "", fmt.Errorf("error getting registry from image")
+	}
+
+	return separated[0], nil
 }

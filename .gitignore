@@ -22,3 +22,5 @@ bin/operator
 *.swp
 *.swo
 *~
+
+junit.xml
