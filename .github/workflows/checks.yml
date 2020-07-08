@@ -24,15 +24,32 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-          if [ -f Gopkg.toml ]; then
-              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-              dep ensure
-          fi
+        run: go mod download
 
       - name: Test
-        run: make test
+        run: |
+          os=$(go env GOOS)
+          arch=$(go env GOARCH)
+
+          # download kubebuilder and extract it to tmp
+          curl -L https://go.kubebuilder.io/dl/2.3.1/${os}/${arch} | tar -xz -C /tmp/
+
+          # move to a long-term location and put it on your path
+          # (you'll need to set the KUBEBUILDER_ASSETS env var if you put it somewhere else)
+          sudo mv /tmp/kubebuilder_2.3.1_${os}_${arch} /usr/local/kubebuilder
+          export PATH=$PATH:/usr/local/kubebuilder/bin
+
+          make test
+
+      - name: Report Coverage
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        run: |
+          TEST_REPORTER=/tmp/cc-test-reporter
+          curl -Lqo $TEST_REPORTER https://codeclimate.com/downloads/test-reporter/test-reporter-0.6.3-linux-amd64 2>/dev/null
+          chmod +x $TEST_REPORTER
+
+          $TEST_REPORTER after-build -p github.com/logikone/autoimagepullsecrets-operator -t gocov
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -48,12 +65,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-          if [ -f Gopkg.toml ]; then
-              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-              dep ensure
-          fi
+        run: go mod download
 
       - name: Build
         run: go build -v ./cmd/operator
