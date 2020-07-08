@@ -11,6 +11,8 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+RELEASE_VERSION ?= "HEAD"
+
 all: operator
 
 # Run tests
@@ -86,3 +88,17 @@ rbac: controller-gen
 
 schemapatch: controller-gen
 	$(CONTROLLER_GEN) schemapatch:manifests=./deploy/crds output:schemapatch:artifacts:config=./deploy/crds paths=./api/...
+
+release-notes:
+	@test -d docs/releases || mkdir -p docs/releases
+
+	go run k8s.io/release/cmd/release-notes \
+		--release-version $(RELEASE_VERSION) \
+		--start-sha $(shell git rev-list --max-parents=0 HEAD) \
+		--end-sha $(shell git rev-parse HEAD) \
+		--github-repo autoimagepullsecrets-operator \
+		--github-org logikone \
+		--output docs/releases/$(RELEASE_VERSION).md \
+		--required-author="" \
+		--dependencies=false \
+		--format go-template:./hack/release-notes.tmpl
