@@ -15,7 +15,7 @@ all: operator
 
 # Run tests
 test: generate fmt vet manifests
-	go run github.com/onsi/ginkgo/ginkgo ./... -coverprofile cover.out
+	go run github.com/onsi/ginkgo/ginkgo -v ./... -coverprofile cover.out
 
 # Build manager binary
 operator: generate fmt vet

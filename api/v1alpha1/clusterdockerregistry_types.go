@@ -39,8 +39,8 @@ type ClusterDockerRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DockerRegistrySpec   `json:"spec,omitempty"`
-	Status DockerRegistryStatus `json:"status,omitempty"`
+	Spec   ClusterDockerRegistrySpec   `json:"spec,omitempty"`
+	Status ClusterDockerRegistryStatus `json:"status,omitempty"`
 }
 
 func (in *ClusterDockerRegistry) GetAuthConfig() AuthConfig {

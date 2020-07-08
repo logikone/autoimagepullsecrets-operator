@@ -7,6 +7,4 @@ spec:
     serveraddress: docker.artifactory.saltstack.net
     username: dXNlcm5hbWU=
     password: cGFzc3dvcmQ=
-  match:
-    #    regExp: /*.+/
-    exact: docker.artifactory.saltstack.com
+  registry: docker.artifactory.saltstack.com
