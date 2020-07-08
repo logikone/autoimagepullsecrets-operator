@@ -32,13 +32,7 @@ jobs:
           fi
 
       - name: Test
-        run: go test -cover -v $(go list ./... | grep -v cmd)
-
-      - name: Format
-        run: go fmt $(go list ./... | grep -v cmd)
-
-      - name: Vet
-        run: go vet $(go list ./... | grep -v cmd)
+        run: make test
   build:
     name: Build
     runs-on: ubuntu-latest
