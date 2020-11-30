@@ -19,7 +19,8 @@ import (
 type SecretReconciler struct {
 	client.Client
 
-	Log logr.Logger
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch;

@@ -1,7 +1,9 @@
 package webhooks
 
 const (
-	IPSInjectionEnabled         = "autoimagepullsecrets.io/injection"
-	IPSInjectionMatch           = "autoimagepullsecrets.io/match"
-	IPSInjectionMatchNamespaced = "autoimagepullsecrets.io/match-namespaced"
+	IPSInjectionBase            = "autoimagepullsecrets.io"
+	IPSInjectionEnabled         = IPSInjectionBase + "/injection"
+	IPSInjectionMatch           = IPSInjectionBase + "/match"
+	IPSInjectionMatchNamespaced = IPSInjectionBase + "/match-namespaced"
+	IPSInjectionRegistries      = IPSInjectionBase + "/registries"
 )

@@ -39,7 +39,7 @@ var _ = BeforeSuite(func(done Done) {
 	By("Bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			path.Join("..", "deploy", "crds"),
+			path.Join("..", "deploy", "crd", "bases"),
 		},
 	}
 

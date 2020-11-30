@@ -15,6 +15,7 @@ func setupControllers(mgr ctrl.Manager) {
 	if err := (&controllers.PodReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controller").WithName("Pod"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "error starting pod reconciler")
 		os.Exit(1)
@@ -23,6 +24,7 @@ func setupControllers(mgr ctrl.Manager) {
 	if err := (&controllers.SecretReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controller").WithName("Secret"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "error starting secret reconciler")
 		os.Exit(1)
