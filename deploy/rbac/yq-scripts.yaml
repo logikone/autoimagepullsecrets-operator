@@ -1,0 +1,5 @@
+- command: update
+  path: metadata.name
+  value: '{{ .Release.Name }}-aips-operator'
+- command: delete
+  path: metadata.creationTimestamp

@@ -12,6 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+// +kubebuilder:webhook:path=/mutate-autoimagepullsecrets.io-v1alpha1-dockerregistry,mutating=false,failurePolicy=fail,groups="autoimagepullsecrets.io",resources=dockerregistries,verbs=create;update,versions=v1alpha1,name=mdockerregistries.kb.io,sideEffects=none
+
 var _ webhook.Validator = &DockerRegistry{}
 
 func (in *DockerRegistry) SetupWebhookWithManager(mgr ctrl.Manager) error {

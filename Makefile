@@ -35,19 +35,6 @@ operator: generate fmt vet
 run: generate fmt vet manifests
 	go run ./cmd/operator
 
-# Install CRDs into a cluster
-install: schemapatch
-	kubectl apply -f deploy/crds
-
-# Uninstall CRDs from a cluster
-uninstall: schemapatch
-	kubectl delete -f deploy/crds
-
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default | kubectl apply -f -
-
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: update-chart
 	#$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
@@ -72,20 +59,24 @@ docker-build: test
 docker-push:
 	docker push ${IMG}
 
-update-chart: rbac schemapatch
+update-chart: crds deploy/rbac/role.yaml deploy/chart/autoimagepullsecrets-operator/templates/role.yaml
 
-crds: crdbases
-	./hack/build-crds.sh
-	$(CONTROLLER_GEN) \
-		schemapatch:manifests="./deploy/chart/autoimagepullsecrets-operator/charts/crds/templates" \
-		output:schemapatch:artifacts:config="./deploy/chart/autoimagepullsecrets-operator/charts/crds/templates" \
-		paths="./api/..."
-
-crdbases:
+crds:
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) paths="./api/..." output:crd:artifacts:config=./deploy/crd/bases
+	@./hack/build-crds.sh
 
-rbac:
-	$(CONTROLLER_GEN) 'rbac:roleName=`{{ .Release.Name }}-aips-operator`' paths="./..." output:rbac:artifacts:config=./deploy/chart/autoimagepullsecrets-operator/templates
+.PHONY: deploy/rbac/role.yaml
+deploy/rbac/role.yaml:
+	$(CONTROLLER_GEN) 'rbac:roleName=aips-operator' paths="./..." output:rbac:artifacts:config=./deploy/rbac/
 
-schemapatch:
-	$(CONTROLLER_GEN) schemapatch:manifests=./deploy/crds output:schemapatch:artifacts:config=./deploy/crds paths=./api/...
+.PHONY: deploy/webhooks/manifests.yaml
+deploy/webhooks/manifests.yaml:
+	$(CONTROLLER_GEN) webhook paths="./..." output:webhook:artifacts:config=./deploy/webhooks/
+
+deploy/chart/autoimagepullsecrets-operator/templates/webhooks.yaml: deploy/webhooks/manifests.yaml deploy/webhooks/yq-scripts.yaml
+	yq merge -x -d '*' deploy/webhooks/manifests.yaml deploy/chart/labels.yaml | \
+		yq write -d '*' -s deploy/webhooks/yq-scripts.yaml -- /dev/stdin > $@
+
+deploy/chart/autoimagepullsecrets-operator/templates/role.yaml: deploy/rbac/role.yaml
+	yq merge -x -d '*' deploy/rbac/role.yaml deploy/chart/labels.yaml | \
+		yq write -d '*' -s deploy/rbac/yq-scripts.yaml -- /dev/stdin > $@

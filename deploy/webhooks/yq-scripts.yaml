@@ -1,0 +1,14 @@
+- command: update
+  path: metadata.name
+  value: '{{ include "autoimagepullsecrets-operator.fullname" . }}'
+- command: update
+  path: metadata.annotations
+  value:
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ .Values.certSecret }}'
+- command: update
+  path: webhooks.*.clientConfig.service
+  value:
+    name: '{{ include "autoimagepullsecrets-operator.fullname" . }}'
+    namespace: '{{ .Release.Namespace }}'
+- command: delete
+  path: metadata.creationTimestamp
