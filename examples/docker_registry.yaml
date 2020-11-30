@@ -7,5 +7,4 @@ spec:
     serveraddress: https://index.docker.io/v1/
     username: testuser
     password: testpass
-  registry:
-    regExp: "*.+"
+  registry: docker.artifactory.saltstack.net

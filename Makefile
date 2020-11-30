@@ -2,7 +2,9 @@
 # Image URL to use all building/pushing image targets
 IMG ?= logikone/autoimagepullsecrets-operator:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:crdVersions=v1"
+CRD_OPTIONS ?= "crd:crdVersions=v1beta1"
+
+CONTROLLER_GEN ?= go run sigs.k8s.io/controller-tools/cmd/controller-gen
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -12,6 +14,9 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 all: operator
+
+clean:
+	find . -type f -name c.out -delete
 
 # Run tests
 test: generate fmt vet manifests
@@ -44,7 +49,7 @@ deploy: manifests
 	kustomize build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen update-chart
+manifests: update-chart
 	#$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
@@ -56,7 +61,7 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate:
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
@@ -67,27 +72,20 @@ docker-build: test
 docker-push:
 	docker push ${IMG}
 
-# find or download controller-gen
-# download controller-gen if necessary
-controller-gen:
-ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
+update-chart: rbac schemapatch
 
-update-chart: controller-gen rbac schemapatch
+crds: crdbases
+	./hack/build-crds.sh
+	$(CONTROLLER_GEN) \
+		schemapatch:manifests="./deploy/chart/autoimagepullsecrets-operator/charts/crds/templates" \
+		output:schemapatch:artifacts:config="./deploy/chart/autoimagepullsecrets-operator/charts/crds/templates" \
+		paths="./api/..."
 
-rbac: controller-gen
+crdbases:
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) paths="./api/..." output:crd:artifacts:config=./deploy/crd/bases
+
+rbac:
 	$(CONTROLLER_GEN) 'rbac:roleName=`{{ .Release.Name }}-aips-operator`' paths="./..." output:rbac:artifacts:config=./deploy/chart/autoimagepullsecrets-operator/templates
 
-schemapatch: controller-gen
+schemapatch:
 	$(CONTROLLER_GEN) schemapatch:manifests=./deploy/crds output:schemapatch:artifacts:config=./deploy/crds paths=./api/...
